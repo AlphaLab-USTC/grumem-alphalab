@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="description" content="GRU-Mem: Gated Recurrent Memory for Long-Context Reasoning" />
+  <meta name="keywords" content="long-context reasoning, memory agent, reinforcement learning, LLM" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>When to Memorize and When to Stop: Gated Recurrent Memory for Long-Context Reasoning</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/bulma.min.css" />
+  <link rel="stylesheet" href="./css/bulma-carousel.min.css" />
+  <link rel="stylesheet" href="./css/bulma-slider.min.css" />
+  <link rel="stylesheet" href="./css/fontawesome.all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css" />
+  <link rel="stylesheet" href="./css/index.css" />
+  <link rel="stylesheet" href="./css/enhanced-styles.css" />
+  <link rel="stylesheet" href="./css/final-enhancements.css" />
+  <link rel="stylesheet" href="./css/navbar-fix.css" />
+  <link rel="stylesheet" href="./css/navbar-alignment-fix.css" />
+  <link rel="stylesheet" href="./css/overlap-fix.css" />
+  <link rel="stylesheet" href="./css/spacing-fix.css" />
+  <link rel="stylesheet" href="./css/author-affiliation-styles.css" />
+  <link rel="icon" href="./figs/seed_logo.png" type="image/png" />
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./js/fontawesome.all.min.js"></script>
+  <script src="./js/bulma-carousel.min.js"></script>
+  <script src="./js/bulma-slider.min.js"></script>
+  <script src="./js/index.js"></script>
+  <script src="./js/enhanced-animations.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      chtml: { displayAlign: "center" },
+      loader: { load: ['[tex]/ams'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+  <style>
+    .left-logo {
+      margin-right: 1rem;
+      border-radius: 0;
+    }
+    .math-center {
+      display: block;
+      text-align: center;
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+    .nowrap-math {
+      white-space: nowrap;
+      display: inline-block;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
+    <div class="container">
+      <div class="navbar-brand">
+        <a class="navbar-item" href="#">
+          <img src="figs/seed_logo.png" alt="Seed logo" style="height: 1.5rem; max-height: unset;" class="left-logo">
+          | GRU-Mem
+        </a>
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div class="navbar-menu">
+        <div class="navbar-end">
+          <a class="navbar-item" href="#introduction">Introduction</a>
+          <a class="navbar-item" href="#method">Method</a>
+          <a class="navbar-item" href="#experiments">Experiments</a>
+          <a class="navbar-item" href="#limitations">Limitations</a>
+          <a class="navbar-item" href="#conclusion">Conclusion</a>
+          <a class="navbar-item" href="#citation">Citation</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container">
+        <div class="has-text-centered">
+          <h1 class="publication-title">
+            <span><em class="dnerf">GRU-Mem</em>: When to Memorize and When to Stop for Long-Context Reasoning</span>
+          </h1>
+
+          <div class="publication-authors">
+            <span class="author-block">Leheng Sheng<sup>1,2</sup></span>
+            <span class="author-block">Yongtao Zhang<sup>1</sup></span>
+            <span class="author-block">Wenchang Ma<sup>1</sup></span>
+            <span class="author-block">Yaorui Shi<sup>3</sup></span>
+            <span class="author-block">Ting Huang<sup>1</sup></span>
+            <span class="author-block">Xiang Wang<sup>3</sup></span>
+            <span class="author-block">An Zhang<sup>3</sup></span>
+            <span class="author-block">Ke Shen<sup>1</sup></span>
+            <span class="author-block">Tat-Seng Chua<sup>2</sup></span>
+          </div>
+
+          <div class="publication-affiliations">
+            <span class="affiliation-block"><sup>1</sup>Bytedance Seed</span><br>
+            <span class="affiliation-block"><sup>2</sup>National University of Singapore</span><br>
+            <span class="affiliation-block"><sup>3</sup>University of Science and Technology of China</span>
+          </div>
+
+          <div class="publication-links">
+            <span class="link-block">
+              <span class="button is-dark is-static">
+                <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                <span>Paper (TBD)</span>
+              </span>
+            </span>
+            <span class="link-block">
+              <span class="button is-dark is-static">
+                <span class="icon"><i class="fas fa-code"></i></span>
+                <span>Code (TBD)</span>
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="introduction">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-10">
+          <h2 class="title is-3">Introduction</h2>
+          <div class="content">
+            <p>
+              Long-context reasoning remains challenging for LLMs: performance degrades as context grows, and inputs beyond the context window are difficult to handle effectively.
+              MemAgent introduced an RNN-like chunk-by-chunk memory workflow, but two practical limitations remain: memory can explode due to indiscriminate updates, and the workflow lacks an early-exit mechanism.
+            </p>
+            <p>
+              We propose <strong>GRU-Mem</strong>, a gated recurrent memory framework with two text-controlled gates:
+              an <strong>update gate (UG)</strong> deciding whether memory should be updated at a step, and an <strong>exit gate (EG)</strong> deciding whether the recurrent loop should stop once sufficient evidence is collected.
+              The model is trained end-to-end with explicit rewards for update and exit behaviors.
+            </p>
+            <p>
+              Across diverse long-context tasks, GRU-Mem improves both effectiveness and efficiency over vanilla MemAgent, and achieves up to <strong>400% inference speed acceleration</strong> in selected settings.
+            </p>
+
+            <figure class="image" style="max-width: 950px; margin: 2rem auto;">
+              <img src="figs/grumem_teaser.png" alt="GRU-Mem teaser">
+              <figcaption>
+                <span>MemAgent limitations and GRU-Mem motivation.</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="method">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-10">
+          <h2 class="title is-3">Method</h2>
+          <div class="content">
+            <h4><strong>Gated Recurrent Memory Workflow</strong></h4>
+            <p>
+              At step <span class="nowrap-math">$t$</span>, the memory agent outputs
+              <span class="nowrap-math">$\mathcal{U}_t, \hat{\mathcal{M}}_t, \mathcal{E}_t = \phi_\theta(\mathcal{Q}, \mathcal{C}_t, \mathcal{M}_{t-1})$</span>,
+              where <span class="nowrap-math">$\mathcal{U}_t$</span> controls memory update and <span class="nowrap-math">$\mathcal{E}_t$</span> controls early exit.
+            </p>
+            <p>
+              If <span class="nowrap-math">$\mathcal{U}_t=\texttt{True}$</span>, memory is updated with candidate memory;
+              otherwise the previous memory is retained.
+              If <span class="nowrap-math">$\mathcal{E}_t=\texttt{True}$</span>, the workflow terminates and answers from terminal memory.
+            </p>
+
+            <figure class="image" style="max-width: 1000px; margin: 2rem auto;">
+              <img src="figs/grumem_workflow.png" alt="GRU-Mem workflow">
+              <figcaption>
+                <span>GRU-Mem memory update and early-exit workflow.</span>
+              </figcaption>
+            </figure>
+
+            <h4><strong>End-to-End RL Optimization</strong></h4>
+            <p>
+              GRU-Mem introduces dedicated rewards for gate behaviors:
+              <span class="nowrap-math">$r^{\text{update}}$</span> for correct update decisions and
+              <span class="nowrap-math">$r^{\text{exit}}$</span> for proper exit timing, together with outcome and format rewards.
+            </p>
+            <p>
+              The final advantage combines trajectory-level and turn-level terms:
+            </p>
+            <div class="math-center">
+              $$
+              \hat{A}_{g,t,i}=\alpha\hat{A}^{\text{traj}}_{g,t,i}+(1-\alpha)\hat{A}^{\text{turn}}_{g,t,i}.
+              $$
+            </div>
+
+            <figure class="image" style="max-width: 1000px; margin: 2rem auto;">
+              <img src="figs/grumem_advantage.png" alt="Advantage calculation">
+              <figcaption>
+                <span>Trajectory-level and turn-level advantage calculation.</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="experiments">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-10">
+          <h2 class="title is-3">Experiments</h2>
+          <div class="content">
+            <h4><strong>RQ1: Performance and Efficiency</strong></h4>
+            <p>
+              On Qwen2.5-3B/7B backbones and 10 long-context tasks (HQA, SQuAD, SK/MK/MQ/MV), GRU-Mem generally outperforms vanilla MemAgent with clear inference-time reductions.
+              With exit gate enabled, acceleration can reach up to 400% in selected scenarios.
+            </p>
+
+            <figure class="image" style="max-width: 820px; margin: 2rem auto;">
+              <img src="figs/grumem_perf_mv.png" alt="Performance and efficiency on MV">
+              <figcaption>
+                <span>Performance-efficiency tradeoff across context lengths on MV.</span>
+              </figcaption>
+            </figure>
+
+            <h4><strong>RQ2: Gating Mechanism Analysis</strong></h4>
+            <p>
+              The update gate slows memory growth and mitigates memory explosion; the exit gate enables meaningful early stopping under evidence-unbalanced settings.
+            </p>
+
+            <div class="columns is-vcentered">
+              <div class="column">
+                <figure class="image">
+                  <img src="figs/grumem_mem_dynamics.png" alt="Memory dynamics">
+                  <figcaption><span>Memory size dynamics under long-context inference.</span></figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img src="figs/grumem_exit_ratio.png" alt="Early/exact/late exit ratio">
+                  <figcaption><span>Early, exact, and late exit ratio under top-20% evidence setting.</span></figcaption>
+                </figure>
+              </div>
+            </div>
+
+            <h4><strong>RQ3: Ablation Study</strong></h4>
+            <p>
+              Ablation confirms that RL training and reward balancing are critical.
+              A mild advantage-mixing coefficient (e.g., <span class="nowrap-math">$\alpha=0.9$</span>) yields better balance between evidence-present and evidence-free update decisions.
+            </p>
+
+            <figure class="image" style="max-width: 700px; margin: 2rem auto;">
+              <img src="figs/grumem_ablation.png" alt="Ablation results">
+              <figcaption><span>Effectiveness of RL training.</span></figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="limitations">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-10">
+          <h2 class="title is-3">Limitations</h2>
+          <div class="content">
+            <p>
+              Current evaluation focuses on QA-oriented long-context reasoning; broader task types such as summarization remain underexplored.
+              In addition, introducing extra reward terms for gating can reduce training stability and may require smaller off-policy degree and longer convergence.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="conclusion">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-10">
+          <h2 class="title is-3">Conclusion</h2>
+          <div class="content">
+            <p>
+              GRU-Mem extends recurrent memory reasoning with two controllable gates: update-when-needed and stop-when-sufficient.
+              This design improves long-horizon stability by reducing memory explosion risk, while improving runtime efficiency through early termination.
+              Across diverse long-context benchmarks, GRU-Mem consistently surpasses vanilla MemAgent and can deliver large inference speedups.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="citation">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-10">
+          <h2 class="title is-3">Citation</h2>
+          <div class="content">
+            <p>If you find this work useful, please cite:</p>
+            <pre><code class="latex">@article{sheng2026grumem,
+  title={When to Memorize and When to Stop: Gated Recurrent Memory for Long-Context Reasoning},
+  author={Sheng, Leheng and Zhang, Yongtao and Ma, Wenchang and Shi, Yaorui and Huang, Ting and Wang, Xiang and Zhang, An and Shen, Ke and Chua, Tat-Seng},
+  journal={arXiv preprint},
+  year={2026}
+}
+            </code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="has-text-centered">
+        <p>© 2026 GRU-Mem Project Page.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
